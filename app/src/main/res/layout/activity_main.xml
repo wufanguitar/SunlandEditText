@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    tools:context="com.example.sunlandedittext.MainActivity">
+
+    <com.example.sunlandedittext.SunlandEditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:hint="请输入内容"
+        app:leftDrawableFocus="@drawable/img_sign_in_account_click"
+        app:leftDrawableUnFocus="@drawable/img_sign_in_account_unclick"
+        app:rightDrawable="@drawable/img_clear_text" />
+    />
+</RelativeLayout>

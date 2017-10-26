@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SunlandEditText">
+        <attr name="leftDrawableFocus" format="reference" />
+        <attr name="leftDrawableUnFocus" format="reference" />
+        <attr name="rightDrawable" format="reference" />
+        <attr name="drawableSize" format="dimension" />
+    </declare-styleable>
+</resources>
