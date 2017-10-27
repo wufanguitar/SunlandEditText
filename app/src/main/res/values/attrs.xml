@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="SunlandEditText">
+        <attr name="enableClear" format="boolean" />
         <attr name="leftDrawableFocus" format="reference" />
         <attr name="leftDrawableUnFocus" format="reference" />
         <attr name="rightDrawable" format="reference" />
-        <attr name="drawableSize" format="dimension" />
+        <attr name="clearDrawable" format="reference" />
+        <attr name="showPwdDrawable" format="reference"/>
+        <attr name="hidePwdDrawable" format="reference"/>
     </declare-styleable>
 </resources>
