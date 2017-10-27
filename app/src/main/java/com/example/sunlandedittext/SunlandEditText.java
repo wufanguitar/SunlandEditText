@@ -64,7 +64,18 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
     }
 
     private void setStatus(int status) {
-        
+        mCurrentStatus = status;
+        switch (status) {
+            case STATUS_UNFOCUSED:
+                setCompoundDrawablesWithIntrinsicBounds(mLeftDrawableUnFocus, null, null, null);
+                break;
+            case STATUS_FOCUSED:
+                setCompoundDrawablesWithIntrinsicBounds(mLeftDrawableFocus, null, null, null);
+                break;
+            default:
+                break;
+        }
+
     }
 
     private void setRightDrawable() {
