@@ -35,7 +35,7 @@ import android.view.View;
  * 2. 在有内容时，点击清除按钮可以删除内容，点击密码可见按钮即可显示密码
  */
 
-public class SunlandEditText extends AppCompatEditText implements TextWatcher {
+public class SunlandEditText extends AppCompatEditText {
     private Context mContext;
     private Drawable mLeftDrawableFocus;
     private Drawable mLeftDrawableUnFocus;
@@ -52,7 +52,8 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
     private boolean enableClear; // 设置是否启动清除功能
     private boolean isPwdInputType; // 输入类型是否为密码类型
     private boolean isPwdShow; // 是否显示密码
-
+    private TextWatcher mTextWatcher;
+    private OnSunlandTextChangeListener mTextChangeListener;
 
     public SunlandEditText(Context context) {
         this(context, null);
@@ -71,6 +72,8 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
     private void initAttrs(Context context, AttributeSet attrs, int defStyleAttr) {
         mContext = context;
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.SunlandEditText, defStyleAttr, 0);
+
+        // 清除按钮
         enableClear = typedArray.getBoolean(R.styleable.SunlandEditText_enableClear, true);
         if (enableClear) {
             int clearId = typedArray.getResourceId(R.styleable.SunlandEditText_clearDrawable, -1);
@@ -83,6 +86,7 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
                 DrawableCompat.setTint(mClearDrawable, getCurrentHintTextColor());
         }
 
+        // 密码可见按钮
         int inputType = getInputType();
         int textPasswordType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD; // 129
         int textVisiblePasswordType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD; // 145
@@ -120,6 +124,7 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
 
         }
 
+        // 左侧按钮
         mLeftDrawableFocus = typedArray.getDrawable(R.styleable.SunlandEditText_leftDrawableFocus);
         mLeftDrawableUnFocus = typedArray.getDrawable(R.styleable.SunlandEditText_leftDrawableUnFocus);
         mRightDrawable = typedArray.getDrawable(R.styleable.SunlandEditText_rightDrawable);
@@ -218,7 +223,9 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
         // 设置左侧图标
         setLeftIconStatus();
         // 设置文本改变监听器
-        addTextChangedListener(this);
+
+        mTextWatcher = new SunlandTextWatcher();
+        addTextChangedListener(mTextWatcher);
     }
 
     /**
@@ -287,24 +294,49 @@ public class SunlandEditText extends AppCompatEditText implements TextWatcher {
     }
     // ===== 工具方法 end ======
 
-    @Override
-    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+    // ===== SunlandTextWatcher 提供回调给用户自定义 begin =====
+    private class SunlandTextWatcher implements TextWatcher {
 
-    }
-
-    @Override
-    public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-    }
-
-    @Override
-    public void afterTextChanged(Editable s) {
-        int currLength = s.length();
-        setRightIconStatus();
-
-        if (currLength > mMaxLength) {
-            getText().delete(currLength - 1, currLength);
-            return;
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            if (mTextChangeListener != null) {
+                mTextChangeListener.beforeTextChanged(s, start, count, after);
+            }
         }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            if (mTextChangeListener != null) {
+                mTextChangeListener.onTextChanged(s, start, before, count);
+            }
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            if (mTextChangeListener != null) {
+                mTextChangeListener.afterTextChanged(s);
+            }
+            int currLength = s.length();
+            setRightIconStatus();
+
+            if (currLength > mMaxLength) {
+                getText().delete(currLength - 1, currLength);
+                return;
+            }
+        }
+    }
+    // ===== SunlandTextWatcher 提供回调给用户自定义 end =====
+
+    public void setOnSunlandTextChangeListener(OnSunlandTextChangeListener listener) {
+        this.mTextChangeListener = listener;
+    }
+
+
+    public interface OnSunlandTextChangeListener {
+        void beforeTextChanged(CharSequence s, int start, int count, int after);
+
+        void onTextChanged(CharSequence s, int start, int before, int count);
+
+        void afterTextChanged(Editable s);
     }
 }
