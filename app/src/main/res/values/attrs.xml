@@ -6,7 +6,8 @@
         <attr name="leftDrawableUnFocus" format="reference" />
         <attr name="rightDrawable" format="reference" />
         <attr name="clearDrawable" format="reference" />
-        <attr name="showPwdDrawable" format="reference"/>
-        <attr name="hidePwdDrawable" format="reference"/>
+        <attr name="showPwdDrawable" format="reference" />
+        <attr name="hidePwdDrawable" format="reference" />
+        <attr name="drawableSize" format="dimension" />
     </declare-styleable>
 </resources>

@@ -7,14 +7,18 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.icu.text.LocaleDisplayNames;
 import android.os.Build;
-import android.renderscript.ScriptGroup;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v7.widget.AppCompatDrawableManager;
 import android.support.v7.widget.AppCompatEditText;
+import android.telephony.TelephonyManager;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.HideReturnsTransformationMethod;
@@ -23,37 +27,62 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
-import android.view.View;
+
+import java.util.Locale;
 
 /**
  * Created by 吴凡 on 2017/10/26.
  * 用户名：
  * 1. 在没有内容时，不显示清除按钮；有内容时，显示清除按钮
  * 2. 在有内容时，点击清除按钮可以删除内容
+ * <p>
  * 密码：
  * 1. 在没有内容的时候，不显示清除按钮和密码可见按钮；有内容时，都可见
  * 2. 在有内容时，点击清除按钮可以删除内容，点击密码可见按钮即可显示密码
+ * <p>
+ * 图标显示为正方形，左右侧自定义图标均同一大小
+ * <p>
+ * 支持数字格式:
+ * 1. 国内手机号码默认输入显示为 111 1111 1111
+ * 2. 其他纯数字显示格式自定义（比如银行卡号）：待完成
+ * 支持无限长度的密码输入：主要解决了在密码输入类型情况当超过可见区域时，绘制的清除图表位置移动的问题
+ * 支持自定义密码长度范围：待完成
  */
-
 public class SunlandEditText extends AppCompatEditText {
+    private final static String TAG = "SunlandEditText";
+    private final static int[] DEFAULT_PATTERN = new int[]{3, 4, 4};
+    private final static String DEFAULT_PHONE_SEPARATOR = " ";
+    private final static String DEFAULT_NUMBER_SEPARATOR = "";
     private Context mContext;
     private Drawable mLeftDrawableFocus;
     private Drawable mLeftDrawableUnFocus;
-    private Drawable mRightDrawable;
     private Drawable mClearDrawable;
     private Drawable mPwdToggleDrawable;
     private Bitmap mBitmap;
     private int mShowPwdResId;
     private int mHidePwdResId;
-    private static final int STATUS_UNFOCUSED = 0;
-    private static final int STATUS_FOCUSED = 1;
     private boolean isFocused = false; // 是否获取焦点
     private int mMaxLength = Integer.MAX_VALUE;
     private boolean enableClear; // 设置是否启动清除功能
     private boolean isPwdInputType; // 输入类型是否为密码类型
     private boolean isPwdShow; // 是否显示密码
     private TextWatcher mTextWatcher;
-    private OnSunlandTextChangeListener mTextChangeListener;
+    private OnSunlandTextChangeListener mTextChangeListener; // 提供接口回调处理自定义事务
+    private int mIconSize; // 设置图标大小
+    private boolean iconSizeSeted; // 是否设置图标大小
+    private boolean isPhoneType; // 是否为手机号类型
+    private String mSeparator; // 分隔符
+    private boolean noSeparator; // 是否设置分隔符
+    private int[] pattern; // [3, 4, 4]: xxx xxxx xxxx
+    private int[] intervals; // 用于记录分隔符在字符串中的索引位置
+    private int mPreLength; // 记录输入之前的字符串长度
+
+    private float mEditaleWidth = 0F; // 可见输入区域宽度（在EditText有焦点/无输入/密码情形下）
+    private float mInputedWidth; // 实际已经在EditText中输入字符串的长度
+    private float mOutWidth; // 超出宽度值，主要用于密码输入类型中清除图标的重绘
+    private boolean isOut; // 实际输入长度是否超出可见输入区域宽度
+    private boolean isSelectorMiddle; // 光标是否在文本中间
+    private int mBeforeCursorIndex;
 
     public SunlandEditText(Context context) {
         this(context, null);
@@ -73,6 +102,9 @@ public class SunlandEditText extends AppCompatEditText {
         mContext = context;
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.SunlandEditText, defStyleAttr, 0);
 
+        mIconSize = typedArray.getDimensionPixelSize(R.styleable.SunlandEditText_drawableSize, -1);
+        iconSizeSeted = mIconSize != -1;
+
         // 清除按钮
         enableClear = typedArray.getBoolean(R.styleable.SunlandEditText_enableClear, true);
         if (enableClear) {
@@ -80,8 +112,8 @@ public class SunlandEditText extends AppCompatEditText {
             if (clearId == -1)
                 clearId = R.drawable.sunland_et_svg_ic_clear_24dp;
             mClearDrawable = ContextCompat.getDrawable(context, clearId);
-            mClearDrawable.setBounds(0, 0, mClearDrawable.getIntrinsicWidth(),
-                    mClearDrawable.getIntrinsicHeight());
+            mClearDrawable.setBounds(0, 0, iconSizeSeted ? mIconSize : mClearDrawable.getIntrinsicWidth(),
+                    iconSizeSeted ? mIconSize : mClearDrawable.getIntrinsicHeight());
             if (clearId == R.drawable.sunland_et_svg_ic_clear_24dp)
                 DrawableCompat.setTint(mClearDrawable, getCurrentHintTextColor());
         }
@@ -96,7 +128,6 @@ public class SunlandEditText extends AppCompatEditText {
                 inputType == textWebPasswordType || inputType == numberPasswordType) {
             isPwdInputType = true;
             isPwdShow = inputType == 145;
-            mMaxLength = 20;
 
             mShowPwdResId = typedArray.getResourceId(R.styleable.SunlandEditText_showPwdDrawable, -1);
             mHidePwdResId = typedArray.getResourceId(R.styleable.SunlandEditText_hidePwdDrawable, -1);
@@ -107,27 +138,35 @@ public class SunlandEditText extends AppCompatEditText {
 
             int pwdId = isPwdShow ? mShowPwdResId : mHidePwdResId;
             mPwdToggleDrawable = ContextCompat.getDrawable(context, pwdId);
+            mPwdToggleDrawable.setBounds(0, 0, iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicWidth(),
+                    iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicHeight());
             if (mShowPwdResId == R.drawable.sunland_et_svg_ic_show_password_24dp ||
                     mHidePwdResId == R.drawable.sunland_et_svg_ic_hide_password_24dp) {
                 DrawableCompat.setTint(mPwdToggleDrawable, getCurrentHintTextColor());
             }
-            mPwdToggleDrawable.setBounds(0, 0, mPwdToggleDrawable.getIntrinsicWidth(),
-                    mPwdToggleDrawable.getIntrinsicHeight());
 
             int clearId = typedArray.getResourceId(R.styleable.SunlandEditText_clearDrawable, -1);
             if (clearId == -1)
                 clearId = R.drawable.sunland_et_svg_ic_clear_24dp;
             if (enableClear) {
                 mBitmap = getBitmapFromVectorDrawable(context, clearId,
-                        clearId == R.drawable.sunland_et_svg_ic_clear_24dp); // clearDrawable
+                        clearId == R.drawable.sunland_et_svg_ic_clear_24dp);
             }
-
         }
 
         // 左侧按钮
         mLeftDrawableFocus = typedArray.getDrawable(R.styleable.SunlandEditText_leftDrawableFocus);
         mLeftDrawableUnFocus = typedArray.getDrawable(R.styleable.SunlandEditText_leftDrawableUnFocus);
-        mRightDrawable = typedArray.getDrawable(R.styleable.SunlandEditText_rightDrawable);
+        if (mLeftDrawableFocus != null && mLeftDrawableUnFocus != null) {
+            mLeftDrawableFocus.setBounds(0, 0, iconSizeSeted ? mIconSize : mLeftDrawableFocus.getIntrinsicWidth(),
+                    iconSizeSeted ? mIconSize : mLeftDrawableFocus.getIntrinsicHeight());
+            mLeftDrawableUnFocus.setBounds(0, 0, iconSizeSeted ? mIconSize : mLeftDrawableUnFocus.getIntrinsicWidth(),
+                    iconSizeSeted ? mIconSize : mLeftDrawableUnFocus.getIntrinsicHeight());
+        }
+
+        // 手机号输入类型
+        isPhoneType = inputType == InputType.TYPE_CLASS_PHONE;
+
         typedArray.recycle();
     }
 
@@ -140,8 +179,8 @@ public class SunlandEditText extends AppCompatEditText {
             DrawableCompat.setTint(drawable, getCurrentHintTextColor());
         }
 
-        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(),
-                drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Bitmap bitmap = Bitmap.createBitmap(iconSizeSeted ? mIconSize : drawable.getIntrinsicWidth(),
+                iconSizeSeted ? mIconSize : drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
         drawable.draw(canvas);
@@ -154,18 +193,29 @@ public class SunlandEditText extends AppCompatEditText {
         super.onDraw(canvas);
 
         if (isFocused && mBitmap != null && isPwdInputType && !isTextEmpty()) {
-            int left = getMeasuredWidth() - getPaddingRight() -
-                    mPwdToggleDrawable.getIntrinsicWidth() - mBitmap.getWidth() - dp2px(4);
-            int top = (getMeasuredHeight() - mBitmap.getHeight()) >> 1;
-            canvas.drawBitmap(mBitmap, left, top, null);
+            int pwdToggleDrawableWidth = iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicWidth();
+            int leftClear = getMeasuredWidth() - getPaddingRight() -
+                    pwdToggleDrawableWidth - mBitmap.getWidth() - dp2px(4);
+            int topClear = (getMeasuredHeight() - mBitmap.getHeight()) >> 1;
+            if (mEditaleWidth == 0F) {
+                mEditaleWidth = getMeasuredWidth() - getPaddingRight() - pwdToggleDrawableWidth - getCompoundDrawablePadding() -
+                        (getLeft() + pwdToggleDrawableWidth + getPaddingLeft() + getCompoundDrawablePadding());
+                Log.i(TAG, "we hope input space size is: " + mEditaleWidth);
+            }
+            if (isOut) {
+                leftClear += mOutWidth;
+                canvas.drawBitmap(mBitmap, leftClear, topClear, null);
+                return;
+            }
+            canvas.drawBitmap(mBitmap, leftClear, topClear, null);
         }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (isFocused && isPwdInputType && event.getAction() == MotionEvent.ACTION_UP) {
-            int width = mPwdToggleDrawable.getIntrinsicWidth();
-            int height = mPwdToggleDrawable.getIntrinsicHeight();
+            int width = iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicWidth();
+            int height = iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicHeight();
             int top = (getMeasuredHeight() - height) >> 1;
             int right = getMeasuredWidth() - getPaddingRight();
             boolean isAreaX = event.getX() <= right && event.getX() >= right - width;
@@ -180,16 +230,18 @@ public class SunlandEditText extends AppCompatEditText {
                 setSelection(getSelectionStart(), getSelectionEnd());
                 mPwdToggleDrawable = ContextCompat.getDrawable(getContext(), isPwdShow ?
                         mShowPwdResId : mHidePwdResId);
+                mPwdToggleDrawable.setBounds(0, 0, iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicWidth(),
+                        iconSizeSeted ? mIconSize : mPwdToggleDrawable.getIntrinsicHeight());
                 if (mShowPwdResId == R.drawable.sunland_et_svg_ic_show_password_24dp ||
                         mHidePwdResId == R.drawable.sunland_et_svg_ic_hide_password_24dp) {
                     DrawableCompat.setTint(mPwdToggleDrawable, getCurrentHintTextColor());
                 }
-                mPwdToggleDrawable.setBounds(0, 0, mPwdToggleDrawable.getIntrinsicWidth(),
-                        mPwdToggleDrawable.getIntrinsicHeight());
+
                 // 注意与setCompoundDrawablesWithIntrinsicBounds的区别
                 setCompoundDrawables(getCompoundDrawables()[0], getCompoundDrawables()[1],
                         mPwdToggleDrawable, getCompoundDrawables()[3]);
-                invalidate();
+                // 优化1：看源码发现上面setCompoundDrawables方法会调用invalidate(), 故此处可注释掉
+                // invalidate();
             }
 
             if (enableClear) {
@@ -220,28 +272,72 @@ public class SunlandEditText extends AppCompatEditText {
     }
 
     private void init() {
+        if (isCNPhone()) {
+            setPhoneSeparator(DEFAULT_PHONE_SEPARATOR);
+            setPhonePattern();
+            withSeparator(true);
+        }
         // 设置左侧图标
         setLeftIconStatus();
         // 设置文本改变监听器
-
         mTextWatcher = new SunlandTextWatcher();
         addTextChangedListener(mTextWatcher);
     }
 
+    private void setPhoneSeparator(String phoneSeparator) {
+        this.mSeparator = phoneSeparator;
+    }
+
+    // 仅由setNumberPattern调用，执行前已排除国内手机号码
+    private void setNumberSeparator(String numberSeparator) {
+        this.mSeparator = numberSeparator;
+    }
+
+    private void setPhonePattern() {
+        setUpPattern(DEFAULT_PATTERN);
+    }
+
+    /**
+     * 根据定义的规则进行初始化操作
+     *
+     * @param pattern
+     */
+    private void setUpPattern(int[] pattern) {
+        this.pattern = pattern;
+        intervals = new int[pattern.length];
+        int count = 0;
+        int sum = 0;
+        for (int i = 0; i < pattern.length; i++) {
+            sum += pattern[i];
+            intervals[i] = sum + count;
+            if (i < pattern.length - 1) {
+                count += mSeparator.length();
+            }
+        }
+        mMaxLength = intervals[intervals.length - 1];
+
+        InputFilter[] filters = new InputFilter[1];
+        filters[0] = new InputFilter.LengthFilter(mMaxLength);
+        setFilters(filters);
+    }
+
     /**
      * 左侧图标与右侧图标分开处理，避免复杂的逻辑代码
+     * 解决：当密码类型/有焦点/无输入时无法显示密码可见图标
      */
     private void setLeftIconStatus() {
         if (isFocused) {
             if (isPwdInputType)
-                setCompoundDrawablesWithIntrinsicBounds(mLeftDrawableFocus, null, mPwdToggleDrawable, null);
+                setCompoundDrawables(mLeftDrawableFocus, getCompoundDrawables()[1],
+                        mPwdToggleDrawable, getCompoundDrawables()[3]);
             else
-                setCompoundDrawablesWithIntrinsicBounds(mLeftDrawableFocus, null, null, null);
+                setCompoundDrawables(mLeftDrawableFocus, getCompoundDrawables()[1],
+                        getCompoundDrawables()[2], getCompoundDrawables()[3]);
         } else {
-            setCompoundDrawablesWithIntrinsicBounds(mLeftDrawableUnFocus, null, null, null);
+            setCompoundDrawables(mLeftDrawableUnFocus, getCompoundDrawables()[1],
+                    getCompoundDrawables()[2], getCompoundDrawables()[3]);
         }
     }
-
 
     @Override
     protected void onFocusChanged(boolean focused, int direction, Rect previouslyFocusedRect) {
@@ -260,14 +356,17 @@ public class SunlandEditText extends AppCompatEditText {
          *                 是密码：显示密码图标和清除图标
          *         有输入
          *                 非密码：不显示密码图标，显示清除图标
+         *
+         * 无焦点  均不显示
          */
         if (!isFocused || (isTextEmpty() && !isPwdInputType)) {
             setCompoundDrawables(getCompoundDrawables()[0], getCompoundDrawables()[1],
                     null, getCompoundDrawables()[3]);
-
+            /* 优化2：这里当（无焦点/有输入/是密码）会走进来！
+                      焦点切换后会触发setRightIconStatus调用，先调用setCompoundDrawables（源码会调用invalidate）
             if (!isTextEmpty() && isPwdInputType) {
                 invalidate();
-            }
+            }*/
         } else {
             if (isPwdInputType) {
                 if (mShowPwdResId == R.drawable.sunland_et_svg_ic_show_password_24dp ||
@@ -283,7 +382,7 @@ public class SunlandEditText extends AppCompatEditText {
         }
     }
 
-    // ===== 工具方法 begin ======
+    /* ==== begin 工具方法 ==== */
     private boolean isTextEmpty() {
         return getText().toString().trim().length() == 0;
     }
@@ -292,15 +391,47 @@ public class SunlandEditText extends AppCompatEditText {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
                 Resources.getSystem().getDisplayMetrics());
     }
-    // ===== 工具方法 end ======
 
-    // ===== SunlandTextWatcher 提供回调给用户自定义 begin =====
+    private boolean isCNPhone() {
+        return isCN() && isPhoneType;
+    }
+
+    private boolean isCN() {
+        TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        String countryIso = tm.getSimCountryIso();
+        boolean isCN = false;
+        if (!TextUtils.isEmpty(countryIso)) {
+            countryIso = countryIso.toUpperCase(Locale.US);
+            if (countryIso.contains("CN")) {
+                isCN = true;
+            }
+        }
+        return isCN;
+    }
+
+    /**
+     * 通过TextPaint计算输入文本的宽度
+     * @param string
+     * @return
+     */
+    private float getInputTextWidth(String string) {
+        TextPaint textPaint = getPaint();
+        return textPaint.measureText(string);
+    }
+    /* ==== 工具方法 end ==== */
+
+    /* ==== begin SunlandTextWatcher 提供回调接口 ==== */
     private class SunlandTextWatcher implements TextWatcher {
 
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            mPreLength = s.length();
             if (mTextChangeListener != null) {
                 mTextChangeListener.beforeTextChanged(s, start, count, after);
+            }
+            int endCursor = getSelectionEnd();
+            if (endCursor < mPreLength) {
+                // to do
             }
         }
 
@@ -318,19 +449,95 @@ public class SunlandEditText extends AppCompatEditText {
             }
             int currLength = s.length();
             setRightIconStatus();
+            // 计算超出宽度值
+            // 如下代码不能在beforeTextChanged中执行，否则清除图标差一个输入字符的位移值
+            isOut = false;
+            mInputedWidth = getInputTextWidth(s.toString());
+            if (mEditaleWidth != 0F && mEditaleWidth < mInputedWidth ) {
+                mOutWidth = mInputedWidth - mEditaleWidth;
+                isOut = true;
+                Log.i(TAG, "input text is out of range, the value is " + mOutWidth);
+                if (mTextChangeListener != null) {
+                    mTextChangeListener.onInputTextOutOfRange();
+                }
+            }
 
             if (currLength > mMaxLength) {
                 getText().delete(currLength - 1, currLength);
                 return;
             }
+
+            if (pattern == null) {
+                return;
+            }
+
+            for (int i = 0; i < pattern.length; i++) {
+                if (currLength - 1 == intervals[i]) {
+                    if (currLength > mPreLength) {
+                        if (currLength < mMaxLength) {
+                            removeTextChangedListener(mTextWatcher);
+                            getText().insert(currLength - 1, mSeparator);
+                        }
+                    } else if (mPreLength <= mMaxLength) {
+                        removeTextChangedListener(mTextWatcher);
+                        getText().delete(currLength - 1, currLength);
+                    }
+                    addTextChangedListener(mTextWatcher);
+                    break;
+                }
+            }
         }
     }
-    // ===== SunlandTextWatcher 提供回调给用户自定义 end =====
+
+    /* ==== SunlandTextWatcher 提供回调接口 end ==== */
+
+    /* ==== begin 提供给开发者使用的方法 ==== */
+    /**
+     * 获取输入文本
+     */
+    public String getTrimmedString() {
+        if (noSeparator) {
+            return getText().toString().trim();
+        } else {
+            return getText().toString().replaceAll(mSeparator, "").trim();
+        }
+    }
+
+    /**
+     * 自定义数字格式
+     */
+    public void setNumberPattern(@NonNull int[] pattern) {
+        setNumberPattern(pattern, DEFAULT_NUMBER_SEPARATOR);
+    }
+
+    public void setNumberPattern(@NonNull int[] pattern, @NonNull String numberSeparator) {
+        if (isCNPhone()) {
+            return;
+        }
+        setNumberSeparator(numberSeparator);
+        setUpPattern(pattern);
+    }
+
+    /**
+     * 拥有可“不采用分隔符”最高权限
+     * 设置为true后，默认的国内11位手机号码模板格式[3, 4, 4]将无效
+     */
+    public SunlandEditText withSeparator(boolean withSeparator) {
+        this.noSeparator = !withSeparator;
+        if (noSeparator) {
+            mSeparator = "";
+            pattern = null;
+        }
+        return this;
+    }
+
+    public boolean hasNoSeparator() {
+        return noSeparator;
+    }
 
     public void setOnSunlandTextChangeListener(OnSunlandTextChangeListener listener) {
         this.mTextChangeListener = listener;
     }
-
 
     public interface OnSunlandTextChangeListener {
         void beforeTextChanged(CharSequence s, int start, int count, int after);
@@ -338,5 +545,8 @@ public class SunlandEditText extends AppCompatEditText {
         void onTextChanged(CharSequence s, int start, int before, int count);
 
         void afterTextChanged(Editable s);
+
+        void onInputTextOutOfRange();
     }
+    /* ==== 提供给开发者使用的方法 end ==== */
 }
