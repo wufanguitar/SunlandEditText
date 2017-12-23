@@ -9,5 +9,6 @@
         <attr name="showPwdDrawable" format="reference" />
         <attr name="hidePwdDrawable" format="reference" />
         <attr name="drawableSize" format="dimension" />
+        <attr name="allowLeftUpdate" format="boolean" />
     </declare-styleable>
 </resources>
