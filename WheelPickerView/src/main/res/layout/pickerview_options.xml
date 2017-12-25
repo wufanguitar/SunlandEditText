@@ -16,24 +16,22 @@
         android:background="@android:color/white"
         android:orientation="horizontal">
 
-        <com.bigkoo.pickerview.lib.WheelView
-            android:id="@+id/options1"
+        <com.wufanguitar.pickerview.lib.WheelView
+            android:id="@+id/option_first"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
-        <com.bigkoo.pickerview.lib.WheelView
-            android:id="@+id/options2"
+        <com.wufanguitar.pickerview.lib.WheelView
+            android:id="@+id/option_second"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
-        <com.bigkoo.pickerview.lib.WheelView
-            android:id="@+id/options3"
+        <com.wufanguitar.pickerview.lib.WheelView
+            android:id="@+id/option_third"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
     </LinearLayout>
-
-
 </LinearLayout>

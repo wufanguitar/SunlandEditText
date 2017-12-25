@@ -18,11 +18,16 @@ public class WheelOptions<T> {
     private WheelView mOptionThird;
 
     private List<T> mOptionFirstItems;
+    // 联动选项二的数据源
     private List<List<T>> mRelatedOptionSecondItems;
+    // 非联动选项二的数据源
     private List<T> mOptionSecondItems;
+    // 联动选项三的数据源
     private List<List<List<T>>> mRelatedOptionThirdItems;
+    // 非联动选项三的数据源
     private List<T> mOptionThirdItems;
-    private boolean mLinkage;
+    // 是否联动
+    private boolean mIsLinkage;
     private OnItemSelectedListener mOptionFirstListener;
     private OnItemSelectedListener mOptionSecondListener;
 
@@ -46,14 +51,14 @@ public class WheelOptions<T> {
         this.mView = view;
     }
 
-    public WheelOptions(View view, Boolean linkage) {
+    public WheelOptions(View view, Boolean isLinkage) {
         super();
-        this.mLinkage = linkage;
+        this.mIsLinkage = isLinkage;
         this.mView = view;
         // 初始化时显示的数据
-        mOptionFirst = (WheelView) view.findViewById(R.id.options1);
-        mOptionSecond = (WheelView) view.findViewById(R.id.options2);
-        mOptionThird = (WheelView) view.findViewById(R.id.options3);
+        mOptionFirst = (WheelView) view.findViewById(R.id.option_first);
+        mOptionSecond = (WheelView) view.findViewById(R.id.option_second);
+        mOptionThird = (WheelView) view.findViewById(R.id.option_third);
     }
 
     // 联动情况下
@@ -137,9 +142,9 @@ public class WheelOptions<T> {
         };
 
         // 添加联动监听
-        if (options2Items != null && mLinkage)
+        if (options2Items != null && mIsLinkage)
             mOptionFirst.setOnItemSelectedListener(mOptionFirstListener);
-        if (options3Items != null && mLinkage)
+        if (options3Items != null && mIsLinkage)
             mOptionSecond.setOnItemSelectedListener(mOptionSecondListener);
     }
 
@@ -306,7 +311,7 @@ public class WheelOptions<T> {
     }
 
     public void setCurrentItems(int option1, int option2, int option3) {
-        if (mLinkage) {
+        if (mIsLinkage) {
             itemSelected(option1, option2, option3);
         }
         mOptionFirst.setCurrentItem(option1);
