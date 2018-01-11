@@ -27,6 +27,12 @@ import com.wufanguitar.pickerview.utils.PickerViewAnimateUtil;
  */
 
 public class BasePickerView {
+    protected final int DEFAULT_LEFT_RIGHT_BUTTON_NORMAL_COLOR = 0xFF057dff;
+    protected final int DEFAULT_LEFT_RIGHT_BUTTON_PRESS_COLOR = 0xFFc2daf5;
+    protected final int DEFAULT_TOPBAR_BACKGROUND_COLOR = 0xFFf5f5f5;
+    protected final int DEFAULT_TOPBAR_TITLE_STRING_COLOR = 0xFF000000;
+    protected final int DEFAULT_WHEEL_VIEW_BACKGROUND_COLOR = 0xFFFFFFFF;
+
     private final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -42,12 +48,6 @@ public class BasePickerView {
     // 附加 Dialog 的根View
     protected ViewGroup mDialogView;
 
-    protected int pickerview_timebtn_nor = 0xFF057dff;
-    protected int pickerview_timebtn_pre = 0xFFc2daf5;
-    protected int pickerview_bg_topbar = 0xFFf5f5f5;
-    protected int pickerview_topbar_title = 0xFF000000;
-    protected int bgColor_default = 0xFFFFFFFF;
-
     private OnDismissListener mOnDismissListener;
     private boolean mIsDismissing;
 
@@ -55,7 +55,6 @@ public class BasePickerView {
     private Animation mInAnim;
     private boolean mIsShowing;
     private int mGravity = Gravity.BOTTOM;
-
 
     private Dialog mDialog;
     // Dialog 型对话框是否能取消
@@ -78,7 +77,7 @@ public class BasePickerView {
             mDialogView.setBackgroundColor(Color.TRANSPARENT);
             // 这个是真正要加载时间选取器的父布局
             mContentContainer = (ViewGroup) mDialogView.findViewById(R.id.content_container);
-            // 设置对话框 左右间距屏幕30
+            // 设置对话框的左右间距屏幕30
             this.params.leftMargin = 30;
             this.params.rightMargin = 30;
             mContentContainer.setLayoutParams(this.params);
@@ -93,7 +92,7 @@ public class BasePickerView {
             });
         } else {
             // 如果只是要显示在屏幕的下方
-            // mDecorView 是 activity 的根View
+            // mDecorView 是 activity 的根 View
             if (mDecorView == null) {
                 mDecorView = (ViewGroup) ((Activity) mContext).getWindow().getDecorView().findViewById(android.R.id.content);
             }
@@ -105,7 +104,7 @@ public class BasePickerView {
             if (backgroudId != 0) {
                 mRootView.setBackgroundColor(backgroudId);
             }
-            // mRootView.setBackgroundColor(ContextCompat.getColor(context,backgroudId));
+            // mRootView.setBackgroundColor(ContextCompat.getColor(context, backgroudId));
             // 这个是真正要加载时间选取器的父布局
             mContentContainer = (ViewGroup) mRootView.findViewById(R.id.content_container);
             mContentContainer.setLayoutParams(params);
@@ -122,7 +121,7 @@ public class BasePickerView {
     }
 
     /**
-     * @param view:   是通过哪个View弹出的
+     * @param view: 是通过哪个View弹出的
      * @param isAnim: 是否显示动画效果
      */
     public void show(View view, boolean isAnim) {
@@ -141,9 +140,8 @@ public class BasePickerView {
         show();
     }
 
-
     /**
-     * 添加View到根视图
+     * 添加 View 到根视图
      */
     public void show() {
         if (isDialog()) {
@@ -158,7 +156,6 @@ public class BasePickerView {
         }
     }
 
-
     /**
      * show 的时候调用
      */
@@ -169,11 +166,8 @@ public class BasePickerView {
         }
     }
 
-
     /**
      * 检测该 View 是不是已经添加到根视图
-     *
-     * @return 如果视图已经存在该View返回true
      */
     public boolean isShowing() {
         if (isDialog()) {
@@ -181,7 +175,6 @@ public class BasePickerView {
         } else {
             return mRootView.getParent() != null || mIsShowing;
         }
-
     }
 
     public void dismiss() {
@@ -192,7 +185,7 @@ public class BasePickerView {
                 return;
             }
             if (mIsAnim) {
-                //消失动画
+                // 消失动画
                 mOutAnim.setAnimationListener(new Animation.AnimationListener() {
                     @Override
                     public void onAnimationStart(Animation animation) {
@@ -289,8 +282,6 @@ public class BasePickerView {
 
     /**
      * 设置对话框模式是否可以点击外部取消
-     *
-     * @param cancelable
      */
     public void setDialogOutSideCancelable(boolean cancelable) {
         this.mIsCancelable = cancelable;
@@ -299,9 +290,6 @@ public class BasePickerView {
         }
     }
 
-    /**
-     * Called when the user touch on black overlay in order to dismiss the dialog
-     */
     protected final View.OnTouchListener onCancelableTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -318,11 +306,11 @@ public class BasePickerView {
 
     public void createDialog() {
         if (mDialogView != null) {
-            mDialog = new Dialog(mContext, R.style.custom_dialog2);
+            mDialog = new Dialog(mContext, R.style.custom_dialog);
             // 不能点外面取消，也不能点 back 取消
             mDialog.setCancelable(mIsCancelable);
             mDialog.setContentView(mDialogView);
-            mDialog.getWindow().setWindowAnimations(R.style.pickerview_dialogAnim);
+            mDialog.getWindow().setWindowAnimations(R.style.pickerview_dialog_animation);
             mDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {

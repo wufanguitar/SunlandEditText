@@ -4,7 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/SunlandCustom.iml" filepath="$PROJECT_DIR$/SunlandCustom.iml" />
       <module fileurl="file://$PROJECT_DIR$/SunlandEditText.iml" filepath="$PROJECT_DIR$/SunlandEditText.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/WheelPickerView/WheelPickerView.iml" filepath="$PROJECT_DIR$/WheelPickerView/WheelPickerView.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

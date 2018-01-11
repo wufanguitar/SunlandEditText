@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="custom_dialog2" parent="@android:style/Theme.Dialog">
+    <style name="custom_dialog" parent="@android:style/Theme.Dialog">
         <item name="android:windowFrame">@null</item>
         <!-- Dialog的windowFrame框为无 -->
         <item name="android:windowIsFloating">true</item>
@@ -17,7 +17,7 @@
         <item name="android:backgroundDimAmount">0.3</item>
     </style>
 
-    <style name="pickerview_dialogAnim" mce_bogus="1" parent="android:Animation">
+    <style name="pickerview_dialog_animation" mce_bogus="1" parent="android:Animation">
         <item name="android:windowEnterAnimation">@anim/pickerview_dialog_scale_in</item>
         <item name="android:windowExitAnimation">@anim/pickerview_dialog_scale_out</item>
     </style>

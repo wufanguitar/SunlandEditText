@@ -76,7 +76,7 @@ public class WheelView extends View {
     // 每行高度
     private float mItemHeight;
     // 字体样式，默认是等宽字体
-    protected Typeface mTypeface = Typeface.MONOSPACE;
+    protected Typeface mFontTypeface = Typeface.MONOSPACE;
 
     protected int mOutTextColor = DEFAULT_OUT_TEXT_COLOR;
     protected int mCenterTextColor = DEFAULT_CENTER_TEXT_COLOR;
@@ -157,7 +157,6 @@ public class WheelView extends View {
             mCenterContentOffset = density * 2.5F;
         }
 
-
         if (attrs != null) {
             TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.wufangutiar, 0, 0);
             mGravity = a.getInt(R.styleable.wufangutiar_pickerview_gravity, Gravity.CENTER);
@@ -170,7 +169,6 @@ public class WheelView extends View {
         }
 
         judgeLineSpace();
-
         initLoopView(context);
     }
 
@@ -201,14 +199,14 @@ public class WheelView extends View {
         mPaintOuterText = new Paint();
         mPaintOuterText.setColor(mOutTextColor);
         mPaintOuterText.setAntiAlias(true);
-        mPaintOuterText.setTypeface(mTypeface);
+        mPaintOuterText.setTypeface(mFontTypeface);
         mPaintOuterText.setTextSize(mTextSize);
 
         mPaintCenterText = new Paint();
         mPaintCenterText.setColor(mCenterTextColor);
         mPaintCenterText.setAntiAlias(true);
         mPaintCenterText.setTextScaleX(1.1F);
-        mPaintCenterText.setTypeface(mTypeface);
+        mPaintCenterText.setTypeface(mFontTypeface);
         mPaintCenterText.setTextSize(mTextSize);
 
         mPaintIndicator = new Paint();
@@ -285,7 +283,8 @@ public class WheelView extends View {
         mFuture = mExecutor.scheduleWithFixedDelay(new SmoothScrollTimerTask(this, mOffsetY), 0, 10, TimeUnit.MILLISECONDS);
     }
 
-    protected final void scrollBy(float velocityY) {//滚动惯性的实现
+    // 滚动惯性的实现
+    protected final void scrollBy(float velocityY) {
         cancelFuture();
         mFuture = mExecutor.scheduleWithFixedDelay(new InertiaTimerTask(this, velocityY), 0, DEFAULT_FLING_VELOCITY, TimeUnit.MILLISECONDS);
     }
@@ -299,17 +298,15 @@ public class WheelView extends View {
 
     /**
      * 设置是否循环滚动
-     *
-     * @param cyclic 是否循环
      */
-    public final void setCyclic(boolean cyclic) {
-        mIsLoop = cyclic;
+    public final void setLoop(boolean isLoop) {
+        this.mIsLoop = isLoop;
     }
 
-    public final void setTypeface(Typeface font) {
-        mTypeface = font;
-        mPaintOuterText.setTypeface(mTypeface);
-        mPaintCenterText.setTypeface(mTypeface);
+    public final void setTypeface(Typeface fontTypeFace) {
+        this.mFontTypeface = fontTypeFace;
+        this.mPaintOuterText.setTypeface(mFontTypeface);
+        this.mPaintCenterText.setTypeface(mFontTypeface);
     }
 
     public final void setTextSize(float size) {
@@ -378,7 +375,7 @@ public class WheelView extends View {
             mPreCurrentIndex = mInitPosition + mChangeItems % mAdapter.getItemsCount();
 
         } catch (ArithmeticException e) {
-            Log.e("WheelView", "出错了！mAdapter.getItemsCount() == 0，联动数据不匹配");
+            Log.e("WheelView", "mAdapter.getItemsCount() == 0, WheelAdapter is error");
         }
         if (!mIsLoop) { // 不循环的情况
             if (mPreCurrentIndex < 0) {
@@ -389,7 +386,7 @@ public class WheelView extends View {
             }
         } else { // 循环
             if (mPreCurrentIndex < 0) {
-                // 举个例子：如果总数是5，mPreCurrentIndex ＝ －1，那么mPreCurrentIndex按循环来说，其实是0的上面，也就是4的位置
+                // 举个例子：如果总数是5，mPreCurrentIndex ＝ －1，那么mPreCurrentIndex按循环来说，其实是 0 的上面，也就是 4 的位置
                 mPreCurrentIndex = mAdapter.getItemsCount() + mPreCurrentIndex;
             }
             if (mPreCurrentIndex > mAdapter.getItemsCount() - 1) {
@@ -538,9 +535,7 @@ public class WheelView extends View {
     }
 
     /**
-     * 根据文字的长度 重新设置文字的大小 让其能完全显示
-     *
-     * @param contentText
+     * 根据文字的长度，重新设置文字的大小，让其能完全显示
      */
     private void reMeasureTextSize(String contentText) {
         Rect rect = new Rect();
@@ -558,7 +553,6 @@ public class WheelView extends View {
         mPaintOuterText.setTextSize(size);
     }
 
-
     // 递归计算出对应的index
     private int getLoopMappingIndex(int index) {
         if (index < 0) {
@@ -573,9 +567,6 @@ public class WheelView extends View {
 
     /**
      * 根据传进来的对象获取getPickerViewText()方法，来获取需要显示的值
-     *
-     * @param item 数据源的item
-     * @return 对应显示的字符串
      */
     private String getContentText(Object item) {
         if (item == null) {
@@ -709,8 +700,6 @@ public class WheelView extends View {
 
     /**
      * 获取Item个数
-     *
-     * @return item个数
      */
     public int getItemsCount() {
         return mAdapter != null ? mAdapter.getItemsCount() : 0;
@@ -718,14 +707,12 @@ public class WheelView extends View {
 
     /**
      * 附加在右边的单位字符串
-     *
-     * @param label 单位
      */
     public void setLabel(String label) {
         this.mLabel = label;
     }
 
-    public void setIsCenterLabel(Boolean isCenterLabel) {
+    public void setCenterLabel(Boolean isCenterLabel) {
         this.mIsCenterLabel = isCenterLabel;
     }
 

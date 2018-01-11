@@ -1,4 +1,4 @@
-package com.example.sunlandedittext;
+package com.example.wufanguitar;
 
 import android.content.Context;
 import android.content.res.Resources;

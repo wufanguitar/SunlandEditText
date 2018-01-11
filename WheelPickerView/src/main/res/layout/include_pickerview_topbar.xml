@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rv_topbar"
+    android:id="@+id/rl_topbar"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pickerview_bg_topbar">
 
-    <Button
-        android:id="@+id/btnCancel"
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/btn_left"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:background="@android:color/transparent"
@@ -16,19 +16,19 @@
         android:textColor="@drawable/selector_pickerview_btn"
         android:textSize="@dimen/pickerview_topbar_btn_textsize" />
 
-    <TextView
-        android:id="@+id/tvTitle"
+    <android.support.v7.widget.AppCompatTextView
+        android:id="@+id/tv_title"
         android:layout_width="match_parent"
-        android:gravity="center"
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
-        android:layout_toLeftOf="@+id/btnSubmit"
-        android:layout_toRightOf="@+id/btnCancel"
+        android:layout_toLeftOf="@+id/btn_right"
+        android:layout_toRightOf="@+id/btn_left"
+        android:gravity="center"
         android:textColor="@color/pickerview_topbar_title"
         android:textSize="@dimen/pickerview_topbar_title_textsize" />
 
-    <Button
-        android:id="@id/btnSubmit"
+    <android.support.v7.widget.AppCompatButton
+        android:id="@id/btn_right"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_alignParentRight="true"
